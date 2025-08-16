@@ -1,19 +1,66 @@
 body {
   font-family: Arial, sans-serif;
-  margin: 20px;
+  background: #1e1e2f;
+  color: #fff;
+  padding: 20px;
+}
+
+.container {
+  max-width: 800px;
+  margin: auto;
+}
+
+.section {
+  margin-bottom: 15px;
 }
 
 #charList span {
   display: inline-block;
-  margin: 5px;
+  background: #4a90e2;
+  color: white;
   padding: 5px 10px;
-  background: #eee;
-  border-radius: 5px;
+  border-radius: 15px;
+  margin: 3px;
+  font-size: 14px;
 }
 
 textarea {
   width: 100%;
   height: 100px;
+  padding: 10px;
   margin-top: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #2e2e3e;
+  color: white;
 }
-// Pruebas anteriores
+
+button {
+  background: #4a90e2;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+button:hover {
+  background: #357ab8;
+}
+
+#autocompleteBox {
+  background: #2e2e3e;
+  border: 1px solid #555;
+  border-radius: 6px;
+  margin-top: 5px;
+  display: none;
+  position: absolute;
+  z-index: 10;
+}
+#autocompleteBox div {
+  padding: 5px;
+  cursor: pointer;
+}
+#autocompleteBox div:hover {
+  background: #4a90e2;
+}
