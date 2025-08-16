@@ -1,143 +1,342 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dialogue Editor</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    textarea { width: 100%; height: 300px; }
-    .tag { display: inline-block; background: #ddd; padding: 4px 8px; margin: 2px; border-radius: 6px; }
-    button { margin: 5px; padding: 6px 12px; }
-    #suggestions { margin-top: 5px; }
-    .suggestion { display: inline-block; background: #eee; padding: 4px 8px; margin: 2px; border: 1px solid #aaa; cursor: pointer; border-radius: 6px; }
+    :root{
+      --bg:#fafafa; --card:#fff; --accent:#2d79ff; --muted:#666;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:#111;padding:24px}
+    .container{max-width:900px;margin:0 auto;background:var(--card);padding:18px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+    h1{margin:0 0 12px}
+    .row{display:flex; gap:8px; margin-bottom:12px; align-items:center}
+    .row-col{display:flex;flex-direction:column;gap:8px}
+    input[type="text"], input[type="search"]{flex:1;padding:8px;border-radius:6px;border:1px solid #ddd}
+    button{padding:8px 12px;border-radius:6px;border:none;background:var(--accent);color:white;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+    .char-list{min-height:36px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px}
+    .tag{background:#eef4ff;color:#123; padding:6px 10px;border-radius:999px;cursor:pointer;border:1px solid rgba(45,121,255,.18); user-select:none}
+    textarea{width:100%;min-height:160px;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:15px;font-family:inherit;resize:vertical}
+    .autocomplete{min-width:200px;border:1px solid #ddd;border-radius:6px;background:white;max-height:160px;overflow:auto;padding:4px}
+    .aut-item{padding:8px;cursor:pointer;border-radius:6px;margin:4px 0}
+    .aut-item:hover{background:#f2f7ff}
+    .autocomplete.hidden{display:none}
+    .muted{color:var(--muted)}
+    .footer{display:flex;gap:8px;align-items:center;margin-top:12px}
+    .small{font-size:13px;color:var(--muted)}
+    .dialogue-list{margin-top:12px}
+    .dialogue-item{padding:8px;border-radius:8px;border:1px solid #eee;margin-bottom:8px;background:#fff}
+    label{font-weight:600}
   </style>
 </head>
 <body>
-  <h1>Dialogue Editor</h1>
+  <div class="container">
+    <h1>Dialogue Editor</h1>
 
-  <!-- Personajes -->
-  <h2>Personajes</h2>
-  <input id="charInput" placeholder="Nuevo personaje">
-  <button onclick="addCharacter()">Agregar</button>
-  <div id="charList"></div>
+    <!-- Personajes -->
+    <div class="row-col" style="margin-bottom:8px">
+      <label>Personajes</label>
+      <div class="row">
+        <input id="charInput" type="text" placeholder="Nuevo personaje (Enter o botón)" />
+        <button id="addCharBtn" type="button">Agregar</button>
+        <button id="clearAllBtn" type="button" class="ghost">Borrar todo</button>
+      </div>
+      <div id="charList" class="char-list muted">No hay personajes aún.</div>
+    </div>
 
-  <!-- Texto -->
-  <h2>Escribir diálogo</h2>
-  <textarea id="dialogueInput" placeholder="Ejemplo: Z: Hola mundo"></textarea>
-  <div id="suggestions"></div>
+    <!-- Texto -->
+    <div style="margin-top:6px">
+      <label>Escribir diálogo (todo en el textarea)</label>
+      <textarea id="dialogInput" placeholder="Ej: Z: Hola mundo&#10;Fluff: ¿Qué es esto?"></textarea>
+      <div id="autocomplete" class="autocomplete hidden" aria-hidden="true"></div>
+      <div class="small">Usa <kbd>TAB</kbd> para autocompletar en escritorio, o toca una sugerencia en móviles.</div>
+    </div>
 
-  <!-- Nombre del archivo -->
-  <h2>Nombre del archivo</h2>
-  <input id="fileName" placeholder="dialogues.json" value="dialogues.json">
+    <!-- Export -->
+    <div class="row" style="margin-top:12px; align-items:center">
+      <label style="width:130px">Nombre del archivo</label>
+      <input id="fileName" type="text" placeholder="dialogues.json" value="dialogues.json" />
+      <button id="exportBtn" type="button">Exportar JSON</button>
+    </div>
 
-  <!-- Botón exportar -->
-  <br>
-  <button onclick="exportJSON()">Exportar JSON</button>
+    <!-- Parsed preview (opcional) -->
+    <div id="dialogueList" class="dialogue-list"></div>
+  </div>
 
   <script>
-    let characters = [];
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM
+      const charInput = document.getElementById('charInput');
+      const addCharBtn = document.getElementById('addCharBtn');
+      const charList = document.getElementById('charList');
 
-    // Guardar en localStorage
-    const dialogueInput = document.getElementById("dialogueInput");
-    const savedText = localStorage.getItem("dialogueText");
-    if (savedText) dialogueInput.value = savedText;
+      const dialogInput = document.getElementById('dialogInput');
+      const autocomplete = document.getElementById('autocomplete');
 
-    dialogueInput.addEventListener("input", () => {
-      localStorage.setItem("dialogueText", dialogueInput.value);
-      showSuggestions();
-    });
+      const fileName = document.getElementById('fileName');
+      const exportBtn = document.getElementById('exportBtn');
+      const clearAllBtn = document.getElementById('clearAllBtn');
+      const dialogueList = document.getElementById('dialogueList');
 
-    const suggestionsDiv = document.getElementById("suggestions");
+      // state (persistido)
+      let characters = JSON.parse(localStorage.getItem('characters') || '[]');
 
-    function addCharacter() {
-      const input = document.getElementById("charInput");
-      const name = input.value.trim();
-      if (name && !characters.includes(name)) {
+      // carga texto guardado
+      dialogInput.value = localStorage.getItem('dialogText') || '';
+
+      // render inicial
+      renderCharacters();
+      updateParsedPreview();
+
+      /* ---------- Characters ---------- */
+      addCharBtn.addEventListener('click', addCharacter);
+      charInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addCharacter(); }
+      });
+
+      function addCharacter() {
+        const name = charInput.value.trim();
+        if (!name) { charInput.value = ''; return; }
+        if (characters.includes(name)) { charInput.value = ''; return; }
         characters.push(name);
+        charInput.value = '';
+        saveCharacters();
         renderCharacters();
       }
-      input.value = "";
-    }
 
-    function renderCharacters() {
-      const list = document.getElementById("charList");
-      list.innerHTML = "";
-      characters.forEach(c => {
-        const span = document.createElement("span");
-        span.className = "tag";
-        span.textContent = c;
-        list.appendChild(span);
+      function saveCharacters() {
+        localStorage.setItem('characters', JSON.stringify(characters));
+      }
+
+      function renderCharacters() {
+        charList.innerHTML = '';
+        if (!characters.length) {
+          charList.textContent = 'No hay personajes aún.';
+          charList.classList.add('muted');
+          return;
+        }
+        charList.classList.remove('muted');
+        characters.forEach(c => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'tag';
+          btn.dataset.name = c;
+          btn.textContent = c;
+          btn.addEventListener('click', () => insertCharacterTag(c));
+          charList.appendChild(btn);
+        });
+      }
+
+      /* ---------- Autocomplete helpers ---------- */
+      function getLineTokenAndPos() {
+        const pos = dialogInput.selectionStart;
+        const val = dialogInput.value;
+        const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
+        const upToCursor = val.slice(lineStart, pos);
+        const m = upToCursor.match(/^([^\s:]+)/); // token (no espacios ni :)
+        if (!m) return { token: '', lineStart, tokenStart: null, tokenEnd: null };
+        const token = m[1];
+        return { token, lineStart, tokenStart: lineStart, tokenEnd: lineStart + token.length };
+      }
+
+      function updateAutocomplete() {
+        const info = getLineTokenAndPos();
+        if (!info.token || info.token.length === 0) { hideAutocomplete(); return; }
+        const t = info.token.toLowerCase();
+        const matches = characters.filter(c => c.toLowerCase().startsWith(t));
+        if (!matches.length) { hideAutocomplete(); return; }
+        // render items
+        autocomplete.innerHTML = '';
+        matches.forEach(m => {
+          const div = document.createElement('div');
+          div.className = 'aut-item';
+          div.dataset.name = m;
+          div.textContent = m;
+          div.addEventListener('click', () => applySuggestion(m));
+          autocomplete.appendChild(div);
+        });
+        autocomplete.classList.remove('hidden');
+        autocomplete.setAttribute('aria-hidden', 'false');
+      }
+
+      function hideAutocomplete() {
+        autocomplete.classList.add('hidden');
+        autocomplete.innerHTML = '';
+        autocomplete.setAttribute('aria-hidden', 'true');
+      }
+
+      function applySuggestion(name) {
+        const info = getLineTokenAndPos();
+        if (info.tokenStart === null) {
+          insertAtCursor(name + ': ');
+          hideAutocomplete();
+          return;
+        }
+        const val = dialogInput.value;
+        const before = val.slice(0, info.tokenStart);
+        const after = val.slice(info.tokenEnd);
+        const newVal = before + name + ': ' + after;
+        const cursorPos = before.length + name.length + 2;
+        dialogInput.value = newVal;
+        setCaret(cursorPos);
+        saveText();
+        hideAutocomplete();
+        updateParsedPreview();
+      }
+
+      function acceptFirstSuggestion() {
+        const first = autocomplete.querySelector('.aut-item');
+        if (first) applySuggestion(first.dataset.name);
+      }
+
+      function insertAtCursor(text) {
+        const pos = dialogInput.selectionStart;
+        const v = dialogInput.value;
+        dialogInput.value = v.slice(0, pos) + text + v.slice(pos);
+        const newPos = pos + text.length;
+        setCaret(newPos);
+        saveText();
+        updateParsedPreview();
+      }
+
+      function replaceTokenAtLineStart(replacement) {
+        const info = getLineTokenAndPos();
+        const val = dialogInput.value;
+        if (info.tokenStart === null) {
+          insertAtCursor(replacement);
+          return;
+        }
+        const before = val.slice(0, info.tokenStart);
+        const after = val.slice(info.tokenEnd);
+        const newVal = before + replacement + after;
+        const cursorPos = before.length + replacement.length;
+        dialogInput.value = newVal;
+        setCaret(cursorPos);
+        saveText();
+        updateParsedPreview();
+      }
+
+      function setCaret(pos) {
+        setTimeout(() => {
+          dialogInput.setSelectionRange(pos, pos);
+          dialogInput.focus();
+        }, 0);
+      }
+
+      /* ---------- Tag insertion behavior ---------- */
+      // Click tag => insertar "Name: " y llevar cursor ahí.
+      // Si el lugar actual NO está en una línea nueva, se fuerza un salto de línea antes.
+      function insertCharacterTag(name) {
+        const pos = dialogInput.selectionStart;
+        const v = dialogInput.value;
+        const prevChar = pos > 0 ? v[pos - 1] : null;
+        const needsNewline = !(pos === 0 || prevChar === '\n' || prevChar === undefined);
+        const insert = (needsNewline ? '\n' : '') + name + ': ';
+        dialogInput.value = v.slice(0, pos) + insert + v.slice(pos);
+        const newPos = pos + insert.length;
+        setCaret(newPos);
+        saveText();
+        updateAutocomplete();
+        updateParsedPreview();
+      }
+
+      /* ---------- Events binding for textarea ---------- */
+      dialogInput.addEventListener('input', () => {
+        saveText();
+        updateAutocomplete();
+        updateParsedPreview();
       });
-    }
 
-    dialogueInput.addEventListener("keydown", (e) => {
-      if (e.key === "Tab") {
-        e.preventDefault();
-        autocomplete();
+      dialogInput.addEventListener('keydown', (e) => {
+        // TAB = aceptar primera sugerencia si existe
+        if (e.key === 'Tab') {
+          const first = autocomplete.querySelector('.aut-item');
+          if (first) {
+            e.preventDefault();
+            applySuggestion(first.dataset.name);
+          }
+        }
+      });
+
+      dialogInput.addEventListener('blur', () => {
+        // hide after small delay to allow clicking suggestion
+        setTimeout(hideAutocomplete, 120);
+      });
+
+      /* ---------- Persist text ---------- */
+      function saveText() {
+        localStorage.setItem('dialogText', dialogInput.value);
+      }
+
+      /* ---------- Parse & preview dialogues ---------- */
+      function parseDialoguesFromTextarea() {
+        const raw = dialogInput.value;
+        const lines = raw.split(/\r?\n/);
+        const out = [];
+        for (let line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          const colon = trimmed.indexOf(':');
+          if (colon === -1) continue;
+          const name = trimmed.slice(0, colon).trim();
+          let text = trimmed.slice(colon + 1).trim();
+          if (!name || !text) continue;
+          text = text.replace(/["“”]/g, "'");
+          out.push({ character: name, text });
+        }
+        return out;
+      }
+
+      function updateParsedPreview() {
+        const parsed = parseDialoguesFromTextarea();
+        dialogueList.innerHTML = '';
+        if (!parsed.length) {
+          dialogueList.innerHTML = '<div class="muted">Aún no hay diálogos parsados.</div>';
+          return;
+        }
+        parsed.forEach(d => {
+          const div = document.createElement('div');
+          div.className = 'dialogue-item';
+          div.innerHTML = `<div style="font-weight:700">${escapeHtml(d.character)}</div><div>${escapeHtml(d.text)}</div>`;
+          dialogueList.appendChild(div);
+        });
+      }
+
+      /* ---------- Export JSON ---------- */
+      exportBtn.addEventListener('click', () => {
+        const parsed = parseDialoguesFromTextarea();
+        const data = { dialogue: parsed };
+        let name = (fileName.value || 'dialogues').trim();
+        if (!name) name = 'dialogues';
+        if (!name.toLowerCase().endsWith('.json')) name += '.json';
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      /* ---------- Clear all ---------- */
+      clearAllBtn.addEventListener('click', () => {
+        if (!confirm('Borrarás personajes y texto guardado. ¿Seguro?')) return;
+        characters = [];
+        localStorage.removeItem('characters');
+        localStorage.removeItem('dialogText');
+        dialogInput.value = '';
+        renderCharacters();
+        updateParsedPreview();
+      });
+
+      /* ---------- Utility ---------- */
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
       }
     });
-
-    function showSuggestions() {
-      suggestionsDiv.innerHTML = "";
-      const text = dialogueInput.value.split("\n").pop(); // última línea
-      const currentWord = text.split(":")[0].trim().toLowerCase();
-
-      if (!currentWord) return;
-
-      const matches = characters.filter(c => c.toLowerCase().startsWith(currentWord));
-      matches.forEach(m => {
-        const btn = document.createElement("span");
-        btn.className = "suggestion";
-        btn.textContent = m;
-        btn.onclick = () => insertAutocomplete(m);
-        suggestionsDiv.appendChild(btn);
-      });
-    }
-
-    function autocomplete() {
-      const text = dialogueInput.value.split("\n");
-      const lastLine = text[text.length - 1];
-      const currentWord = lastLine.split(":")[0].trim().toLowerCase();
-      const match = characters.find(c => c.toLowerCase().startsWith(currentWord));
-      if (match) {
-        text[text.length - 1] = match + ": ";
-        dialogueInput.value = text.join("\n");
-        dialogueInput.setSelectionRange(dialogueInput.value.length, dialogueInput.value.length);
-        suggestionsDiv.innerHTML = "";
-        localStorage.setItem("dialogueText", dialogueInput.value);
-      }
-    }
-
-    function insertAutocomplete(name) {
-      const text = dialogueInput.value.split("\n");
-      text[text.length - 1] = name + ": ";
-      dialogueInput.value = text.join("\n");
-      dialogueInput.focus();
-      suggestionsDiv.innerHTML = "";
-      localStorage.setItem("dialogueText", dialogueInput.value);
-    }
-
-    function exportJSON() {
-      const lines = dialogueInput.value.split("\n").map(line => {
-        const [char, ...rest] = line.split(":");
-        return {
-          character: char?.trim(),
-          text: rest.join(":").replace(/""/g, "''").trim()
-        };
-      }).filter(d => d.character && d.text);
-
-      const data = { dialogue: lines };
-      let filename = document.getElementById("fileName").value.trim();
-      if (!filename.endsWith(".json")) filename += ".json";
-
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
   </script>
 </body>
 </html>
