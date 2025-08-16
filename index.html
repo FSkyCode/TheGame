@@ -9,6 +9,8 @@
     .tag { display: inline-block; background: #ddd; padding: 4px 8px; margin: 2px; border-radius: 6px; }
     button { margin: 5px; padding: 6px 12px; }
     .preview { border: 1px solid #ccc; padding: 10px; height: 150px; overflow-y: auto; }
+    #suggestions { margin-top: 5px; }
+    .suggestion { display: inline-block; background: #eee; padding: 4px 8px; margin: 2px; border: 1px solid #aaa; cursor: pointer; border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -23,12 +25,18 @@
   <!-- Texto -->
   <h2>Escribir diálogo</h2>
   <textarea id="dialogueInput" placeholder="Ejemplo: Z: Hola mundo"></textarea>
+  <div id="suggestions"></div>
 
   <!-- Vista previa -->
   <h2>Vista previa</h2>
   <div id="preview" class="preview"></div>
 
+  <!-- Nombre del archivo -->
+  <h2>Nombre del archivo</h2>
+  <input id="fileName" placeholder="dialogues.json" value="dialogues.json">
+
   <!-- Botón exportar -->
+  <br>
   <button onclick="exportJSON()">Exportar JSON</button>
 
   <script>
@@ -56,7 +64,10 @@
       });
     }
 
-    document.getElementById("dialogueInput").addEventListener("input", (e) => {
+    const dialogueInput = document.getElementById("dialogueInput");
+    const suggestionsDiv = document.getElementById("suggestions");
+
+    dialogueInput.addEventListener("input", (e) => {
       const lines = e.target.value.split("\n").map(line => {
         const [char, ...rest] = line.split(":");
         return {
@@ -67,7 +78,54 @@
 
       dialogues = lines;
       renderPreview();
+
+      showSuggestions();
     });
+
+    dialogueInput.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        autocomplete();
+      }
+    });
+
+    function showSuggestions() {
+      suggestionsDiv.innerHTML = "";
+      const text = dialogueInput.value.split("\n").pop(); // última línea
+      const currentWord = text.split(":")[0].trim().toLowerCase();
+
+      if (!currentWord) return;
+
+      const matches = characters.filter(c => c.toLowerCase().startsWith(currentWord));
+      matches.forEach(m => {
+        const btn = document.createElement("span");
+        btn.className = "suggestion";
+        btn.textContent = m;
+        btn.onclick = () => insertAutocomplete(m);
+        suggestionsDiv.appendChild(btn);
+      });
+    }
+
+    function autocomplete() {
+      const text = dialogueInput.value.split("\n");
+      const lastLine = text[text.length - 1];
+      const currentWord = lastLine.split(":")[0].trim().toLowerCase();
+      const match = characters.find(c => c.toLowerCase().startsWith(currentWord));
+      if (match) {
+        text[text.length - 1] = match + ": ";
+        dialogueInput.value = text.join("\n");
+        dialogueInput.setSelectionRange(dialogueInput.value.length, dialogueInput.value.length);
+        suggestionsDiv.innerHTML = "";
+      }
+    }
+
+    function insertAutocomplete(name) {
+      const text = dialogueInput.value.split("\n");
+      text[text.length - 1] = name + ": ";
+      dialogueInput.value = text.join("\n");
+      dialogueInput.focus();
+      suggestionsDiv.innerHTML = "";
+    }
 
     function renderPreview() {
       const preview = document.getElementById("preview");
@@ -81,11 +139,14 @@
 
     function exportJSON() {
       const data = { dialogue: dialogues };
+      let filename = document.getElementById("fileName").value.trim();
+      if (!filename.endsWith(".json")) filename += ".json";
+
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "dialogues.json";
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
     }
