@@ -201,6 +201,21 @@ function exportJSON(){
   URL.revokeObjectURL(url);
 }
 
+function insertCharacterTag(name){
+  const val = dialogInput.value;
+  const before = val.endsWith("\n") || val.length === 0 ? val : val + "\n";
+  const insertion = name + ": ";
+
+  dialogInput.value = before + insertion;
+
+  // mueve el cursor al final
+  const newPos = dialogInput.value.length;
+  setTimeout(()=> dialogInput.setSelectionRange(newPos, newPos), 0);
+  dialogInput.focus();
+
+  updateAutocomplete();
+}
+
 /* ---------- Events ---------- */
 // add character
 addCharBtn.addEventListener('click', addCharacter);
