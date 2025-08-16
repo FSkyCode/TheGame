@@ -175,17 +175,16 @@ function startEditDialogue(index){
 }
 
 /* ---------- Render ---------- */
-function renderDialogues(){
-  if(dialogues.length === 0){
-    dialogueList.innerHTML = '<div class="muted">Aún no hay diálogos.</div>';
+function renderCharacters(){
+  if(characters.length===0){
+    charList.innerHTML = 'No hay personajes aún.';
     return;
   }
-  dialogueList.innerHTML = dialogues.map((d,i)=> {
-    return `<div class="dialogue-item" data-idx="${i}"><div class="who">${escapeHtml(d.character)}</div><div class="what">${escapeHtml(d.text)}</div></div>`;
-  }).join('');
-  // attach click handlers
-  dialogueList.querySelectorAll('.dialogue-item').forEach(el=>{
-    el.onclick = ()=> startEditDialogue(Number(el.dataset.idx));
+  charList.innerHTML = characters.map(c=>`<div class="tag" data-name="${escapeHtml(c)}">${escapeHtml(c)}</div>`).join(' ');
+
+  // clic en tag -> insertar en nueva línea
+  charList.querySelectorAll('.tag').forEach(el=>{
+    el.onclick = ()=> insertCharacterTag(el.dataset.name);
   });
 }
 
