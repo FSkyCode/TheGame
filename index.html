@@ -1,36 +1,43 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Editor de Diálogos</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Editor de diálogos - Funcional</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
-    <h1>🎭 Editor de Diálogos</h1>
+    <h1>Editor de diálogos</h1>
 
-    <!-- Añadir personajes -->
-    <div class="section">
-      <input type="text" id="charInput" placeholder="Nombre del personaje">
-      <button onclick="addCharacter()">+ Agregar personaje</button>
+    <!-- Agregar personaje -->
+    <div class="row">
+      <input id="charInput" type="text" placeholder="Nombre personaje (ej: Fluff)" />
+      <button id="addCharBtn">Agregar personaje</button>
     </div>
-    <div id="charList"></div>
+
+    <!-- Lista de etiquetas -->
+    <div id="charList" class="char-list">No hay personajes aún.</div>
 
     <hr>
 
-    <!-- Cuadro de diálogo -->
-    <div class="section">
-      <textarea id="dialogInput" placeholder="Escribe: Personaje: Texto..."></textarea>
-      <div id="autocompleteBox"></div>
-      <button onclick="addDialogue()">+ Agregar diálogo</button>
+    <!-- Textarea y autocompletado -->
+    <div class="row-col">
+      <textarea id="dialogInput" placeholder="Escribe aquí. Empieza la línea con el nombre o escribe el inicio del nombre y presiona TAB / Aceptar."></textarea>
+
+      <div class="autocomplete-row">
+        <div id="autocomplete" class="autocomplete hidden"></div>
+        <button id="acceptBtn" title="Aceptar primera sugerencia">Aceptar sugerencia (Tab)</button>
+      </div>
+
+      <div class="actions">
+        <button id="addDialogBtn">Agregar diálogo(s)</button>
+        <button id="exportBtn" class="ghost">Exportar JSON</button>
+      </div>
     </div>
 
-    <!-- Lista de diálogos -->
-    <h2>📜 Diálogos</h2>
-    <ul id="dialogueList"></ul>
-
-    <!-- Exportar -->
-    <button onclick="exportJSON()">📥 Exportar JSON</button>
+    <h2>Diálogos</h2>
+    <div id="dialogueList" class="dialogue-list">Aún no hay diálogos.</div>
   </div>
 
   <script src="script.js"></script>
