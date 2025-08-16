@@ -1,110 +1,50 @@
-:root {
-  --bg:#f6f7fb;
+:root{
+  --bg:#fafafa;
   --card:#ffffff;
-  --accent:#6c63ff;
-  --muted:#888;
+  --accent:#2d79ff;
+  --muted:#666;
 }
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
-  background: var(--bg);
-  padding: 28px;
-  display: flex;
-  justify-content: center;
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui,Segoe UI,Roboto,Arial;
+  background:var(--bg);
+  color:#111;
+  padding:24px;
 }
-.wrap {
-  width: 920px;
-  max-width: 96vw;
-  background: var(--card);
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(15,15,30,.08);
-  padding: 20px;
+.container{
+  max-width:900px;
+  margin:0 auto;
+  background:var(--card);
+  padding:18px;
+  border-radius:8px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.06);
 }
-h1 { margin: 0 0 12px; font-size: 20px; }
-h2 { margin-top: 18px; font-size: 18px; }
-.row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+h1{margin:0 0 12px}
+.row{display:flex; gap:8px; margin-bottom:12px}
+.row input[type="text"]{flex:1;padding:8px;border-radius:6px;border:1px solid #ddd}
+.row button{padding:8px 12px;border-radius:6px;border:none;background:var(--accent);color:white;cursor:pointer}
+.char-list{min-height:36px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px}
+.tag{background:#eef4ff;color:#123; padding:6px 10px;border-radius:999px;cursor:pointer;border:1px solid rgba(45,121,255,.18)}
+.row-col{display:flex;flex-direction:column;gap:8px}
+textarea{
+  width:100%;
+  min-height:140px;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:15px;
+  font-family:inherit;
+  resize:vertical;
 }
-input[type="text"] {
-  flex: 1;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  font-size: 15px;
-}
-button {
-  background: var(--accent);
-  color: white;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-}
-button.ghost {
-  background: transparent;
-  color: var(--accent);
-  border: 1px solid var(--accent);
-}
-#charList {
-  min-height: 40px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.tag {
-  background: #f0f3ff;
-  color: #2a2a6b;
-  padding: 6px 10px;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 600;
-  border: 1px solid rgba(108,99,255,.12);
-}
-textarea {
-  width: 100%;
-  min-height: 140px;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  resize: vertical;
-  font-size: 15px;
-  font-family: inherit;
-}
-.suggestions {
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 8px;
-  margin-top: 8px;
-  max-height: 160px;
-  overflow: auto;
-  display: none;
-  box-shadow: 0 8px 20px rgba(10,10,30,.06);
-}
-.sug-item {
-  padding: 8px 10px;
-  cursor: pointer;
-  border-bottom: 1px solid #f3f3f3;
-  font-weight: 600;
-}
-.sug-item:hover { background: #f6f7ff; }
-#dialogueList { margin-top: 12px; }
-.dlg {
-  margin: 6px 0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #fcfcff;
-  border: 1px solid #f1f1f6;
-}
-.dlg b { display: block; margin-bottom: 4px; }
-.muted { color: var(--muted); font-size: 13px; }
-.controls {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
+.autocomplete-row{display:flex; gap:8px; align-items:flex-start}
+.autocomplete{min-width:200px;border:1px solid #ddd;border-radius:6px;background:white;max-height:160px;overflow:auto}
+.aut-item{padding:8px;cursor:pointer;border-bottom:1px solid #f3f3f3}
+.aut-item:hover{background:#f2f7ff}
+.autocomplete.hidden{display:none}
+.actions{display:flex; gap:8px}
+.actions button{padding:8px 12px;border-radius:6px;border:none;background:var(--accent);color:white;cursor:pointer}
+.actions button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.dialogue-list{margin-top:8px}
+.dialogue-item{padding:8px;border-radius:8px;border:1px solid #eee;margin-bottom:8px;cursor:pointer;background:#fff}
+.dialogue-item .who{font-weight:700;margin-bottom:4px}
