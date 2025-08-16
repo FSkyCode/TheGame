@@ -1,45 +1,94 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Editor de diálogos - Funcional</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <title>Dialogue Editor</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    textarea { width: 100%; height: 150px; }
+    .tag { display: inline-block; background: #ddd; padding: 4px 8px; margin: 2px; border-radius: 6px; }
+    button { margin: 5px; padding: 6px 12px; }
+    .preview { border: 1px solid #ccc; padding: 10px; height: 150px; overflow-y: auto; }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Editor de diálogos</h1>
+  <h1>Dialogue Editor</h1>
 
-    <!-- Agregar personaje -->
-    <div class="row">
-      <input id="charInput" type="text" placeholder="Nombre personaje (ej: Fluff)" />
-      <button id="addCharBtn">Agregar personaje</button>
-    </div>
+  <!-- Personajes -->
+  <h2>Personajes</h2>
+  <input id="charInput" placeholder="Nuevo personaje">
+  <button onclick="addCharacter()">Agregar</button>
+  <div id="charList"></div>
 
-    <!-- Lista de etiquetas -->
-    <div id="charList" class="char-list">No hay personajes aún.</div>
+  <!-- Texto -->
+  <h2>Escribir diálogo</h2>
+  <textarea id="dialogueInput" placeholder="Ejemplo: Z: Hola mundo"></textarea>
 
-    <hr>
+  <!-- Vista previa -->
+  <h2>Vista previa</h2>
+  <div id="preview" class="preview"></div>
 
-    <!-- Textarea y autocompletado -->
-    <div class="row-col">
-      <textarea id="dialogInput" placeholder="Escribe aquí. Empieza la línea con el nombre o escribe el inicio del nombre y presiona TAB / Aceptar."></textarea>
+  <!-- Botón exportar -->
+  <button onclick="exportJSON()">Exportar JSON</button>
 
-      <div class="autocomplete-row">
-        <div id="autocomplete" class="autocomplete hidden"></div>
-        <button id="acceptBtn" title="Aceptar primera sugerencia">Aceptar sugerencia (Tab)</button>
-      </div>
+  <script>
+    let characters = [];
+    let dialogues = [];
 
-      <div class="actions">
-        <button id="addDialogBtn">Agregar diálogo(s)</button>
-        <button id="exportBtn" class="ghost">Exportar JSON</button>
-      </div>
-    </div>
+    function addCharacter() {
+      const input = document.getElementById("charInput");
+      const name = input.value.trim();
+      if (name && !characters.includes(name)) {
+        characters.push(name);
+        renderCharacters();
+      }
+      input.value = "";
+    }
 
-    <h2>Diálogos</h2>
-    <div id="dialogueList" class="dialogue-list">Aún no hay diálogos.</div>
-  </div>
+    function renderCharacters() {
+      const list = document.getElementById("charList");
+      list.innerHTML = "";
+      characters.forEach(c => {
+        const span = document.createElement("span");
+        span.className = "tag";
+        span.textContent = c;
+        list.appendChild(span);
+      });
+    }
 
-  <script src="script.js"></script>
+    document.getElementById("dialogueInput").addEventListener("input", (e) => {
+      const lines = e.target.value.split("\n").map(line => {
+        const [char, ...rest] = line.split(":");
+        return {
+          character: char?.trim(),
+          text: rest.join(":").replace(/""/g, "''").trim()
+        };
+      }).filter(d => d.character && d.text);
+
+      dialogues = lines;
+      renderPreview();
+    });
+
+    function renderPreview() {
+      const preview = document.getElementById("preview");
+      preview.innerHTML = "";
+      dialogues.forEach(d => {
+        const p = document.createElement("p");
+        p.innerHTML = `<b>${d.character}:</b> ${d.text}`;
+        preview.appendChild(p);
+      });
+    }
+
+    function exportJSON() {
+      const data = { dialogue: dialogues };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dialogues.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
 </body>
 </html>
