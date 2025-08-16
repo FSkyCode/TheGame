@@ -1,128 +1,406 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Autocompletado (segunda opción)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Editor de diálogos - Autocompletado</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-      padding-top: 50px;
-      background: #f3f3f3;
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --accent:#6c63ff;
+      --muted:#888;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;
+      background:var(--bg);
+      padding:28px;
+      display:flex;
+      justify-content:center;
     }
 
-    .container {
-      width: 320px;
+    .wrap{
+      width:920px;
+      max-width:96vw;
+      background:var(--card);
+      border-radius:10px;
+      box-shadow:0 6px 20px rgba(15,15,30,.08);
+      padding:20px;
     }
 
-    input {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border: 2px solid #aaa;
-      border-radius: 8px;
-      outline: none;
+    h1{margin:0 0 12px 0; font-size:20px}
+    .row{display:flex; gap:12px; align-items:center; margin-bottom:12px}
+    .col{flex:1}
+
+    input[type="text"]{
+      width:100%;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid #ddd;
+      font-size:15px;
+    }
+    button{
+      background:var(--accent);
+      color:white;
+      border:none;
+      padding:10px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button.ghost{
+      background:transparent;
+      color:var(--accent);
+      border:1px solid var(--accent);
     }
 
-    .suggestions {
-      margin-top: 5px;
-      background: #fff;
-      border: 1px solid #aaa;
-      border-radius: 8px;
-      max-height: 200px;
-      overflow-y: auto;
+    /* character tags */
+    #charList{min-height:40px; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+    .tag{
+      background:#f0f3ff;
+      color:#2a2a6b;
+      padding:6px 10px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:600;
+      user-select:none;
+      border:1px solid rgba(108,99,255,.12);
+    }
+    .tag:hover{transform:translateY(-2px)}
+
+    /* textarea & suggestions */
+    textarea{
+      width:100%;
+      min-height:140px;
+      padding:12px;
+      border-radius:10px;
+      border:1px solid #ddd;
+      resize:vertical;
+      font-size:15px;
+      font-family:inherit;
     }
 
-    .suggestion {
-      padding: 10px;
-      cursor: pointer;
-      border-bottom: 1px solid #eee;
+    .suggestions{
+      border:1px solid #ddd;
+      background:white;
+      border-radius:8px;
+      margin-top:8px;
+      max-height:160px;
+      overflow:auto;
+      box-shadow:0 8px 20px rgba(10,10,30,.06);
     }
+    .sug-item{
+      padding:8px 10px;
+      cursor:pointer;
+      border-bottom:1px solid #f3f3f3;
+      font-weight:600;
+    }
+    .sug-item:hover{background:#f6f7ff}
 
-    .suggestion:hover {
-      background: #f0f0f0;
-    }
-
-    .hidden {
-      display: none;
-    }
+    /* dialogues list */
+    #dialogueList{margin-top:12px; padding-left:18px}
+    .dlg{margin:6px 0; padding:8px 10px; border-radius:8px; background:#fcfcff; border:1px solid #f1f1f6}
+    .dlg b{display:block; margin-bottom:4px}
+    .controls{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+    .muted{color:var(--muted); font-size:13px;}
   </style>
 </head>
 <body>
-  <div class="container">
-    <input type="text" id="search" placeholder="Escribe algo...">
-    <div id="suggestions" class="suggestions hidden"></div>
+  <div class="wrap">
+    <h1>Editor de diálogos</h1>
+
+    <!-- Add character -->
+    <div class="row">
+      <div class="col">
+        <input id="charInput" type="text" placeholder="Nombre personaje (ej: Fluff)" />
+      </div>
+      <div>
+        <button id="addCharBtn">+ Agregar personaje</button>
+      </div>
+    </div>
+
+    <!-- Character tags -->
+    <div id="charList" class="muted">Sin personajes. Agrega uno arriba.</div>
+
+    <hr style="margin:18px 0">
+
+    <!-- textarea for dialogue input -->
+    <div>
+      <textarea id="dialogInput" placeholder="Escribe aquí. Formato: Nombre: Texto. Puedes tener varias líneas."></textarea>
+
+      <!-- suggestions (autocompletion while typing) -->
+      <div id="suggestions" class="suggestions" style="display:none;"></div>
+
+      <div class="controls">
+        <button id="addDialogBtn">+ Agregar diálogos</button>
+        <button id="exportBtn" class="ghost">📥 Exportar JSON</button>
+        <div style="flex:1"></div>
+        <div class="muted">Tip: click en una etiqueta para insertar <code>Nombre: </code> en el cursor.</div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:18px">Diálogos</h2>
+    <div id="dialogueList" class="muted">Aún no hay diálogos.</div>
   </div>
 
   <script>
-    // Lista de ejemplos (puede venir de un servidor en JSON)
-    const opciones = [
-      "Manzana",
-      "Mandarina",
-      "Mango",
-      "Melocotón",
-      "Melón",
-      "Sandía",
-      "Plátano",
-      "Pera",
-      "Piña",
-      "Papaya"
-    ];
+    /* === Datos === */
+    let characters = [];
+    let dialogues = [];
 
-    const input = document.getElementById("search");
-    const contenedor = document.getElementById("suggestions");
+    /* === Helpers DOM === */
+    const charInput = document.getElementById('charInput');
+    const addCharBtn = document.getElementById('addCharBtn');
+    const charList = document.getElementById('charList');
 
-    // Mostrar sugerencias al escribir
-    input.addEventListener("input", () => {
-      const valor = input.value.toLowerCase();
-      contenedor.innerHTML = ""; // limpiar
-      if (!valor) {
-        contenedor.classList.add("hidden");
+    const dialogInput = document.getElementById('dialogInput');
+    const suggestionsBox = document.getElementById('suggestions');
+
+    const addDialogBtn = document.getElementById('addDialogBtn');
+    const dialogueList = document.getElementById('dialogueList');
+    const exportBtn = document.getElementById('exportBtn');
+
+    /* === Funciones básicas === */
+
+    function addCharacter(){
+      const name = charInput.value.trim();
+      if(!name) return;
+      if(!characters.includes(name)){
+        characters.push(name);
+        renderCharacters();
+      }
+      charInput.value = '';
+      charInput.focus();
+    }
+
+    function renderCharacters(){
+      if(characters.length === 0){
+        charList.innerHTML = '<span class="muted">Sin personajes. Agrega uno arriba.</span>';
         return;
       }
+      charList.innerHTML = characters.map(c => `<div class="tag" data-name="${escapeHTML(c)}">${escapeHTML(c)}</div>`).join(' ');
+      // agregar click a cada tag (inserta "Name: " en la posición del cursor)
+      document.querySelectorAll('.tag').forEach(el => {
+        el.addEventListener('click', e=>{
+          const name = el.getAttribute('data-name');
+          insertOrReplaceTokenAtCurrentLine(name + ': ');
+          dialogInput.focus();
+          updateSuggestions(); // actualizar
+        });
+      });
+      // también alimentar suggestions en caso que quieras usar datalist elsewhere
+    }
 
-      // Filtrar opciones
-      const filtradas = opciones.filter(op =>
-        op.toLowerCase().startsWith(valor)
-      );
+    function escapeHTML(str){
+      return String(str).replace(/[&<>"']/g, s=>({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      })[s]);
+    }
 
-      if (filtradas.length === 0) {
-        contenedor.classList.add("hidden");
-        return;
+    /* Insertar/reemplazar token en la linea actual del textarea:
+       Si usuario está escribiendo el primer token de la línea, lo reemplaza.
+       Si no hay token (linea vacía o cursor al final), inserta en cursor. */
+    function insertOrReplaceTokenAtCurrentLine(replacement){
+      const ta = dialogInput;
+      const val = ta.value;
+      const pos = ta.selectionStart;
+      // calcular inicio de la línea
+      const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
+      const upToCursor = val.slice(lineStart, pos);
+      const tokenMatch = upToCursor.match(/^([^\s:]+)/); // primer "palabra" de la linea
+      if(tokenMatch){
+        const token = tokenMatch[1];
+        const tokenStart = lineStart;
+        const tokenEnd = tokenStart + token.length;
+        const newVal = val.slice(0, tokenStart) + replacement + val.slice(tokenEnd);
+        ta.value = newVal;
+        // colocar cursor justo después del replacement
+        const newPos = tokenStart + replacement.length;
+        setTimeout(()=>{ ta.setSelectionRange(newPos, newPos); }, 0);
+      } else {
+        // insertar en cursor
+        const newVal = val.slice(0, pos) + replacement + val.slice(pos);
+        ta.value = newVal;
+        const newPos = pos + replacement.length;
+        setTimeout(()=>{ ta.setSelectionRange(newPos, newPos); }, 0);
       }
+      // disparar evento para suggestions
+      updateSuggestions();
+    }
 
-      // Mostrar sugerencias
-      filtradas.forEach(op => {
-        const div = document.createElement("div");
-        div.classList.add("suggestion");
-        div.textContent = op;
-        div.onclick = () => {
-          input.value = op; // si se da clic, autocompletar
-          contenedor.classList.add("hidden");
-        };
-        contenedor.appendChild(div);
+    /* Insert at cursor helper (not used now but handy) */
+    function insertAtCursor(insertText){
+      const ta = dialogInput;
+      const pos = ta.selectionStart;
+      const val = ta.value;
+      ta.value = val.slice(0,pos) + insertText + val.slice(pos);
+      const newPos = pos + insertText.length;
+      setTimeout(()=>{ ta.setSelectionRange(newPos,newPos); }, 0);
+    }
+
+    /* === Autocompletion while typing in textarea === */
+
+    function updateSuggestions(){
+      const ta = dialogInput;
+      const pos = ta.selectionStart;
+      const val = ta.value;
+      // find start of current line
+      const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
+      const lineToCursor = val.slice(lineStart, pos); // content from start of line to cursor
+      // we only want to suggest if user is typing the first token (before any ":" or whitespace)
+      const colonIndex = lineToCursor.indexOf(':');
+      if(colonIndex !== -1){
+        hideSuggestions();
+        return; // ya puso ":" → no sugerencias
+      }
+      // token is first word up to whitespace
+      const match = lineToCursor.match(/^([^\s:]+)/);
+      if(!match){ hideSuggestions(); return; }
+      const token = match[1].toLowerCase();
+      if(token.length === 0){ hideSuggestions(); return; }
+
+      // filter character names starting with token (case-insensitive)
+      const filtered = characters.filter(c => c.toLowerCase().startsWith(token));
+      if(filtered.length === 0){ hideSuggestions(); return; }
+
+      // render suggestions
+      suggestionsBox.innerHTML = filtered.map(c => `<div class="sug-item" data-name="${escapeHTML(c)}">${escapeHTML(c)}</div>`).join('');
+      suggestionsBox.style.display = 'block';
+      // add click handlers
+      suggestionsBox.querySelectorAll('.sug-item').forEach(el=>{
+        el.addEventListener('click', ()=>{
+          const name = el.getAttribute('data-name');
+          // replace token at current line with selected name + ': '
+          const ta = dialogInput;
+          const pos2 = ta.selectionStart;
+          const value2 = ta.value;
+          const lineStart2 = value2.lastIndexOf('\n', pos2 - 1) + 1;
+          const upToCursor2 = value2.slice(lineStart2, pos2);
+          const tokenMatch2 = upToCursor2.match(/^([^\s:]+)/);
+          if(tokenMatch2){
+            const token = tokenMatch2[1];
+            const tokenStart = lineStart2;
+            const tokenEnd = tokenStart + token.length;
+            const newVal = value2.slice(0, tokenStart) + name + ': ' + value2.slice(tokenEnd);
+            ta.value = newVal;
+            const newPos = tokenStart + name.length + 2;
+            setTimeout(()=>{ ta.setSelectionRange(newPos,newPos); }, 0);
+          } else {
+            insertAtCursor(name + ': ');
+          }
+          hideSuggestions();
+          ta.focus();
+        });
+      });
+    }
+
+    function hideSuggestions(){
+      suggestionsBox.style.display = 'none';
+      suggestionsBox.innerHTML = '';
+    }
+
+    /* update suggestions when typing */
+    dialogInput.addEventListener('input', updateSuggestions);
+    // hide suggestions on blur (small delay to allow click)
+    dialogInput.addEventListener('blur', ()=> setTimeout(hideSuggestions, 120));
+    dialogInput.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape') hideSuggestions();
+    });
+
+    /* === Parsing texto -> diálogos ===
+       Reglas:
+       - Para cada línea separada por salto de línea:
+         - Si contiene "Nombre: texto..." se toma Nombre y el resto
+         - Reemplaza comillas dobles (incluyendo curly “ ”) por simples '
+         - Reemplaza '...' (3 o más puntos) por el caracter de elipsis '…'
+         - Divide el texto por '.' (punto) y cada fragmento no vacío se agrega como diálogo con '.' añadido.
+       - Si una línea no tiene ':' se ignora.
+    */
+    function processTextareaToDialogues(){
+      const raw = dialogInput.value;
+      if(!raw.trim()) return;
+
+      // normalize endings
+      const lines = raw.split(/\r?\n/);
+      let added = 0;
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if(!trimmed) return;
+        const colonIndex = trimmed.indexOf(':');
+        if(colonIndex === -1) return; // no es una entrada "Name: ..."
+
+        const name = trimmed.slice(0, colonIndex).trim();
+        let msg = trimmed.slice(colonIndex + 1).trim();
+        if(!msg) return;
+
+        // replace curly quotes and normal double quotes with single quote
+        msg = msg.replace(/["“”]/g, "'");
+
+        // replace three or more dots with ellipsis char
+        msg = msg.replace(/\.{3,}/g, '…');
+
+        // split by '.' (period). Keep each sentence and add back '.'
+        // we treat '…' as a single character (ellipses) and won't split on it.
+        const fragments = msg.split('.');
+        fragments.forEach(f => {
+          const ftrim = f.trim();
+          if(ftrim.length > 0){
+            const finalText = ftrim + '.';
+            dialogues.push({ character: name, text: finalText });
+            added++;
+          }
+        });
       });
 
-      contenedor.classList.remove("hidden");
-    });
-
-    // Autocompletar con la segunda opción al presionar Enter
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        const sugerencias = contenedor.querySelectorAll(".suggestion");
-        if (sugerencias.length >= 2) {
-          input.value = sugerencias[1].textContent; // segunda opción
-        } else if (sugerencias.length === 1) {
-          input.value = sugerencias[0].textContent; // si solo hay una, se pone esa
-        }
-        contenedor.classList.add("hidden");
-        e.preventDefault(); // evitar refrescar
+      if(added > 0){
+        renderDialogues();
       }
-    });
+      dialogInput.value = '';
+      hideSuggestions();
+    }
+
+    /* Render dialogues */
+    function renderDialogues(){
+      if(dialogues.length === 0){
+        dialogueList.innerHTML = '<span class="muted">Aún no hay diálogos.</span>';
+        return;
+      }
+      dialogueList.innerHTML = dialogues.map((d, idx) => {
+        return `<div class="dlg"><b>${escapeHTML(d.character)}</b><div>${escapeHTML(d.text)}</div></div>`;
+      }).join('');
+    }
+
+    /* Export JSON file */
+    function exportJSON(){
+      const data = { dialogue: dialogues };
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // pedir nombre al usuario (opcional), si no, usar dialogo.json
+      const name = prompt('Nombre del archivo (sin extensión):', 'dialogo') || 'dialogo';
+      a.download = name + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    /* === Eventos UI === */
+    addCharBtn.addEventListener('click', addCharacter);
+    charInput.addEventListener('keydown', (e)=> { if(e.key === 'Enter'){ addCharacter(); } });
+
+    addDialogBtn.addEventListener('click', processTextareaToDialogues);
+    exportBtn.addEventListener('click', exportJSON);
+
+    // inicial: ejemplo (opcional)
+    // characters = ['Z','Fluff','Edwar','Adler'];
+    // renderCharacters();
+
+    // render initial
+    renderCharacters();
+    renderDialogues();
   </script>
 </body>
 </html>
