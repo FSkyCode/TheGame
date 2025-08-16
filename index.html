@@ -2,253 +2,39 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Editor de diálogos - Autocompletado</title>
-  <style>
-    :root{
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --accent:#6c63ff;
-      --muted:#888;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;
-      background:var(--bg);
-      padding:28px;
-      display:flex;
-      justify-content:center;
-    }
-    .wrap{
-      width:920px;
-      max-width:96vw;
-      background:var(--card);
-      border-radius:10px;
-      box-shadow:0 6px 20px rgba(15,15,30,.08);
-      padding:20px;
-    }
-    h1{margin:0 0 12px 0; font-size:20px}
-    .row{display:flex; gap:12px; align-items:center; margin-bottom:12px}
-    .col{flex:1}
-    input[type="text"], textarea{
-      width:100%;
-      padding:10px 12px;
-      border-radius:8px;
-      border:1px solid #ddd;
-      font-size:15px;
-      font-family:inherit;
-    }
-    textarea{min-height:140px; resize:vertical}
-    button{
-      background:var(--accent);
-      color:white;
-      border:none;
-      padding:10px 12px;
-      border-radius:8px;
-      cursor:pointer;
-      font-weight:600;
-    }
-    button.ghost{
-      background:transparent;
-      color:var(--accent);
-      border:1px solid var(--accent);
-    }
-    #charList{min-height:40px; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
-    .tag{
-      background:#f0f3ff;
-      color:#2a2a6b;
-      padding:6px 10px;
-      border-radius:999px;
-      cursor:pointer;
-      font-weight:600;
-      user-select:none;
-      border:1px solid rgba(108,99,255,.12);
-    }
-    .tag:hover{transform:translateY(-2px)}
-    .suggestions{
-      border:1px solid #ddd;
-      background:white;
-      border-radius:8px;
-      margin-top:8px;
-      max-height:160px;
-      overflow:auto;
-      box-shadow:0 8px 20px rgba(10,10,30,.06);
-    }
-    .sug-item{
-      padding:8px 10px;
-      cursor:pointer;
-      border-bottom:1px solid #f3f3f3;
-      font-weight:600;
-    }
-    .sug-item:hover{background:#f6f7ff}
-    #dialogueList{margin-top:12px; padding-left:18px}
-    .dlg{margin:6px 0; padding:8px 10px; border-radius:8px; background:#fcfcff; border:1px solid #f1f1f6}
-    .dlg b{display:block; margin-bottom:4px}
-    .controls{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
-    .muted{color:var(--muted); font-size:13px;}
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Editor de diálogos</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="wrap">
     <h1>Editor de diálogos</h1>
 
+    <!-- Input personajes -->
     <div class="row">
-      <div class="col">
-        <input id="charInput" type="text" placeholder="Nombre personaje (ej: Fluff)" />
-      </div>
-      <div><button id="addCharBtn">+ Agregar personaje</button></div>
+      <input id="charInput" type="text" placeholder="Nombre personaje (ej: Fluff)" />
+      <button id="addCharBtn">+ Agregar personaje</button>
     </div>
 
+    <!-- Lista de personajes -->
     <div id="charList" class="muted">Sin personajes. Agrega uno arriba.</div>
-    <hr style="margin:18px 0">
 
-    <div>
-      <textarea id="dialogInput" placeholder="Escribe aquí. Formato: Nombre: Texto."></textarea>
-      <div id="suggestions" class="suggestions" style="display:none;"></div>
-      <div class="controls">
-        <button id="addDialogBtn">+ Agregar diálogos</button>
-        <button id="exportBtn" class="ghost">📥 Exportar JSON</button>
-        <div style="flex:1"></div>
-        <div class="muted">Tip: Presiona <b>espacio</b> en una nueva línea para autocompletar con el primer personaje.</div>
-      </div>
+    <hr>
+
+    <!-- Input diálogos -->
+    <textarea id="dialogInput" placeholder="Escribe aquí. Formato: Nombre: Texto"></textarea>
+    <div id="suggestions" class="suggestions"></div>
+
+    <div class="controls">
+      <button id="addDialogBtn">+ Agregar diálogo</button>
+      <button id="editLastBtn" class="ghost">✏️ Editar último</button>
+      <button id="exportBtn" class="ghost">📥 Exportar JSON</button>
     </div>
 
-    <h2 style="margin-top:18px">Diálogos</h2>
+    <h2>Diálogos</h2>
     <div id="dialogueList" class="muted">Aún no hay diálogos.</div>
   </div>
 
-  <script>
-    let characters = [];
-    let dialogues = [];
-
-    const charInput = document.getElementById('charInput');
-    const addCharBtn = document.getElementById('addCharBtn');
-    const charList = document.getElementById('charList');
-    const dialogInput = document.getElementById('dialogInput');
-    const suggestionsBox = document.getElementById('suggestions');
-    const addDialogBtn = document.getElementById('addDialogBtn');
-    const dialogueList = document.getElementById('dialogueList');
-    const exportBtn = document.getElementById('exportBtn');
-
-    function addCharacter(){
-      const name = charInput.value.trim();
-      if(!name) return;
-      if(!characters.includes(name)){
-        characters.push(name);
-        renderCharacters();
-      }
-      charInput.value = '';
-    }
-    function renderCharacters(){
-      if(characters.length === 0){
-        charList.innerHTML = '<span class="muted">Sin personajes. Agrega uno arriba.</span>';
-        return;
-      }
-      charList.innerHTML = characters.map(c=>`<div class="tag" data-name="${c}">${c}</div>`).join('');
-      document.querySelectorAll('.tag').forEach(el=>{
-        el.onclick=()=>{
-          insertAtCursor(el.dataset.name + ": ");
-          updateSuggestions();
-        }
-      });
-    }
-    function insertAtCursor(text){
-      const ta=dialogInput,pos=ta.selectionStart,val=ta.value;
-      ta.value=val.slice(0,pos)+text+val.slice(pos);
-      ta.setSelectionRange(pos+text.length,pos+text.length);
-    }
-
-    // Autocompletar con espacio al inicio de línea
-    dialogInput.addEventListener('keydown', e=>{
-      if(e.key===" "){
-        const pos=dialogInput.selectionStart;
-        const val=dialogInput.value;
-        const lineStart=val.lastIndexOf('\n',pos-1)+1;
-        const before=val.slice(lineStart,pos);
-        if(before.trim()==="" && characters.length>0){
-          e.preventDefault();
-          insertAtCursor(characters[0]+": ");
-        }
-      }
-    });
-
-    // Sugerencias normales
-    function updateSuggestions(){
-      const ta=dialogInput,pos=ta.selectionStart,val=ta.value;
-      const lineStart=val.lastIndexOf('\n',pos-1)+1;
-      const line=val.slice(lineStart,pos);
-      if(line.includes(":")){ hideSug(); return; }
-      const match=line.match(/^([^\s:]+)/);
-      if(!match){ hideSug(); return; }
-      const token=match[1].toLowerCase();
-      const filtered=characters.filter(c=>c.toLowerCase().startsWith(token));
-      if(!filtered.length){ hideSug(); return; }
-      suggestionsBox.innerHTML=filtered.map(c=>`<div class="sug-item">${c}</div>`).join('');
-      suggestionsBox.style.display="block";
-      suggestionsBox.querySelectorAll(".sug-item").forEach(el=>{
-        el.onclick=()=>{
-          const name=el.textContent;
-          const ta=dialogInput,pos=ta.selectionStart,val=ta.value;
-          const ls=val.lastIndexOf('\n',pos-1)+1;
-          const line=val.slice(ls,pos);
-          const tokenMatch=line.match(/^([^\s:]+)/);
-          if(tokenMatch){
-            const start=ls,end=ls+tokenMatch[1].length;
-            ta.value=val.slice(0,start)+name+": "+val.slice(end);
-            ta.setSelectionRange(start+name.length+2,start+name.length+2);
-          }
-          hideSug();
-        }
-      });
-    }
-    function hideSug(){ suggestionsBox.style.display="none"; }
-
-    // Procesar textarea a diálogos
-    function processTextareaToDialogues(){
-      const lines=dialogInput.value.split(/\r?\n/);
-      lines.forEach(line=>{
-        const trimmed=line.trim();
-        if(!trimmed) return;
-        const colon=trimmed.indexOf(":");
-        if(colon===-1) return;
-        const name=trimmed.slice(0,colon).trim();
-        let msg=trimmed.slice(colon+1).trim();
-        if(!msg) return;
-        msg=msg.replace(/["“”]/g,"'").replace(/\.{3,}/g,"…");
-        // cortar por punto o doble espacio
-        msg.split(/\.|\s{2,}/).forEach(f=>{
-          if(f.trim()) dialogues.push({character:name,text:f.trim()+"."});
-        });
-      });
-      renderDialogues();
-      dialogInput.value="";
-      hideSug();
-    }
-
-    function renderDialogues(){
-      if(!dialogues.length){
-        dialogueList.innerHTML='<span class="muted">Aún no hay diálogos.</span>';
-        return;
-      }
-      dialogueList.innerHTML=dialogues.map(d=>`<div class="dlg"><b>${d.character}</b>${d.text}</div>`).join('');
-    }
-    function exportJSON(){
-      const blob=new Blob([JSON.stringify({dialogue:dialogues},null,2)],{type:"application/json"});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement("a");
-      a.href=url;a.download="dialogo.json";a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    addCharBtn.onclick=addCharacter;
-    charInput.onkeydown=e=>{if(e.key==="Enter")addCharacter();}
-    addDialogBtn.onclick=processTextareaToDialogues;
-    exportBtn.onclick=exportJSON;
-    dialogInput.oninput=updateSuggestions;
-    dialogInput.onblur=()=>setTimeout(hideSug,120);
-
-    renderCharacters();renderDialogues();
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
