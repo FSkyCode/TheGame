@@ -1,40 +1,131 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Editor de diálogos</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <title>Diálogos con Personajes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1e1e2f;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+    }
+    .dialog-box {
+      border: 1px solid #555;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #2e2e3e;
+    }
+    .character-name {
+      font-weight: bold;
+    }
+    .controls {
+      margin: 15px 0;
+    }
+    input, select, button {
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 5px;
+      border: none;
+    }
+    input[type="text"], input[type="color"] {
+      width: 48%;
+    }
+    button {
+      background: #4a90e2;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #357ab8;
+    }
+  </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Editor de diálogos</h1>
+  <div class="container">
+    <h2>Editor de Diálogos</h2>
 
-    <!-- Input personajes -->
-    <div class="row">
-      <input id="charInput" type="text" placeholder="Nombre personaje (ej: Fluff)" />
-      <button id="addCharBtn">+ Agregar personaje</button>
-    </div>
-
-    <!-- Lista de personajes -->
-    <div id="charList" class="muted">Sin personajes. Agrega uno arriba.</div>
-
-    <hr>
-
-    <!-- Input diálogos -->
-    <textarea id="dialogInput" placeholder="Escribe aquí. Formato: Nombre: Texto"></textarea>
-    <div id="suggestions" class="suggestions"></div>
-
+    <!-- Selector de personajes -->
     <div class="controls">
-      <button id="addDialogBtn">+ Agregar diálogo</button>
-      <button id="editLastBtn" class="ghost">✏️ Editar último</button>
-      <button id="exportBtn" class="ghost">📥 Exportar JSON</button>
+      <label>Seleccionar personaje:</label>
+      <select id="characterSelect"></select>
     </div>
 
-    <h2>Diálogos</h2>
-    <div id="dialogueList" class="muted">Aún no hay diálogos.</div>
+    <!-- Añadir nuevo personaje -->
+    <div class="controls">
+      <input type="text" id="newCharacterName" placeholder="Nombre del personaje">
+      <input type="color" id="newCharacterColor" value="#ffcc00">
+      <button onclick="addCharacter()">Agregar personaje</button>
+    </div>
+
+    <!-- Escribir diálogos -->
+    <div class="controls">
+      <input type="text" id="dialogInput" placeholder="Escribe un diálogo aquí" style="width:70%">
+      <button onclick="addDialog()">Añadir diálogo</button>
+    </div>
+
+    <!-- Lista de diálogos -->
+    <div id="dialogList"></div>
   </div>
 
-  <script src="script.js"></script>
+  <script>
+    const characters = [
+      { name: "Narrador", color: "#ffffff" },
+      { name: "Héroe", color: "#00ffcc" },
+      { name: "Villano", color: "#ff4444" }
+    ];
+
+    const characterSelect = document.getElementById("characterSelect");
+    const dialogList = document.getElementById("dialogList");
+
+    // Cargar personajes en el selector
+    function updateCharacterSelect() {
+      characterSelect.innerHTML = "";
+      characters.forEach((char, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = char.name;
+        characterSelect.appendChild(option);
+      });
+    }
+
+    // Agregar un personaje nuevo
+    function addCharacter() {
+      const name = document.getElementById("newCharacterName").value.trim();
+      const color = document.getElementById("newCharacterColor").value;
+      if (name === "") {
+        alert("El personaje necesita un nombre.");
+        return;
+      }
+      characters.push({ name, color });
+      document.getElementById("newCharacterName").value = "";
+      updateCharacterSelect();
+    }
+
+    // Agregar diálogo
+    function addDialog() {
+      const text = document.getElementById("dialogInput").value.trim();
+      if (text === "") return;
+
+      const charIndex = characterSelect.value;
+      const char = characters[charIndex];
+
+      const div = document.createElement("div");
+      div.classList.add("dialog-box");
+      div.innerHTML = `<span class="character-name" style="color:${char.color}">${char.name}:</span> ${text}`;
+      dialogList.appendChild(div);
+
+      document.getElementById("dialogInput").value = "";
+    }
+
+    // Inicializar
+    updateCharacterSelect();
+  </script>
 </body>
 </html>
