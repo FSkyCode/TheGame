@@ -2,28 +2,127 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Editor de Diálogos</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autocompletado (segunda opción)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding-top: 50px;
+      background: #f3f3f3;
+    }
+
+    .container {
+      width: 320px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #aaa;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .suggestions {
+      margin-top: 5px;
+      background: #fff;
+      border: 1px solid #aaa;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .suggestion {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+
+    .suggestion:hover {
+      background: #f0f0f0;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <h1>Editor de diálogos</h1>
-
-  <div>
-    <input type="text" id="charInput" placeholder="Nuevo personaje">
-    <button onclick="addCharacter()">+ Agregar personaje</button>
+  <div class="container">
+    <input type="text" id="search" placeholder="Escribe algo...">
+    <div id="suggestions" class="suggestions hidden"></div>
   </div>
-  <div id="charList"></div>
 
-  <hr>
+  <script>
+    // Lista de ejemplos (puede venir de un servidor en JSON)
+    const opciones = [
+      "Manzana",
+      "Mandarina",
+      "Mango",
+      "Melocotón",
+      "Melón",
+      "Sandía",
+      "Plátano",
+      "Pera",
+      "Piña",
+      "Papaya"
+    ];
 
-  <textarea id="dialogInput" placeholder="Escribe aquí: Nombre: Texto"></textarea>
-  <button onclick="addDialogue()">+ Agregar diálogo</button>
+    const input = document.getElementById("search");
+    const contenedor = document.getElementById("suggestions");
 
-  <h2>Diálogos</h2>
-  <ul id="dialogueList"></ul>
+    // Mostrar sugerencias al escribir
+    input.addEventListener("input", () => {
+      const valor = input.value.toLowerCase();
+      contenedor.innerHTML = ""; // limpiar
+      if (!valor) {
+        contenedor.classList.add("hidden");
+        return;
+      }
 
-  <button onclick="exportJSON()">📥 Exportar JSON</button>
+      // Filtrar opciones
+      const filtradas = opciones.filter(op =>
+        op.toLowerCase().startsWith(valor)
+      );
 
-  <script src="script.js"></script>
+      if (filtradas.length === 0) {
+        contenedor.classList.add("hidden");
+        return;
+      }
+
+      // Mostrar sugerencias
+      filtradas.forEach(op => {
+        const div = document.createElement("div");
+        div.classList.add("suggestion");
+        div.textContent = op;
+        div.onclick = () => {
+          input.value = op; // si se da clic, autocompletar
+          contenedor.classList.add("hidden");
+        };
+        contenedor.appendChild(div);
+      });
+
+      contenedor.classList.remove("hidden");
+    });
+
+    // Autocompletar con la segunda opción al presionar Enter
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const sugerencias = contenedor.querySelectorAll(".suggestion");
+        if (sugerencias.length >= 2) {
+          input.value = sugerencias[1].textContent; // segunda opción
+        } else if (sugerencias.length === 1) {
+          input.value = sugerencias[0].textContent; // si solo hay una, se pone esa
+        }
+        contenedor.classList.add("hidden");
+        e.preventDefault(); // evitar refrescar
+      }
+    });
+  </script>
 </body>
 </html>
