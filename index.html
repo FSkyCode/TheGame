@@ -5,10 +5,9 @@
   <title>Dialogue Editor</title>
   <style>
     body { font-family: sans-serif; margin: 20px; }
-    textarea { width: 100%; height: 150px; }
+    textarea { width: 100%; height: 300px; }
     .tag { display: inline-block; background: #ddd; padding: 4px 8px; margin: 2px; border-radius: 6px; }
     button { margin: 5px; padding: 6px 12px; }
-    .preview { border: 1px solid #ccc; padding: 10px; height: 150px; overflow-y: auto; }
     #suggestions { margin-top: 5px; }
     .suggestion { display: inline-block; background: #eee; padding: 4px 8px; margin: 2px; border: 1px solid #aaa; cursor: pointer; border-radius: 6px; }
   </style>
@@ -27,10 +26,6 @@
   <textarea id="dialogueInput" placeholder="Ejemplo: Z: Hola mundo"></textarea>
   <div id="suggestions"></div>
 
-  <!-- Vista previa -->
-  <h2>Vista previa</h2>
-  <div id="preview" class="preview"></div>
-
   <!-- Nombre del archivo -->
   <h2>Nombre del archivo</h2>
   <input id="fileName" placeholder="dialogues.json" value="dialogues.json">
@@ -41,7 +36,18 @@
 
   <script>
     let characters = [];
-    let dialogues = [];
+
+    // Guardar en localStorage
+    const dialogueInput = document.getElementById("dialogueInput");
+    const savedText = localStorage.getItem("dialogueText");
+    if (savedText) dialogueInput.value = savedText;
+
+    dialogueInput.addEventListener("input", () => {
+      localStorage.setItem("dialogueText", dialogueInput.value);
+      showSuggestions();
+    });
+
+    const suggestionsDiv = document.getElementById("suggestions");
 
     function addCharacter() {
       const input = document.getElementById("charInput");
@@ -63,24 +69,6 @@
         list.appendChild(span);
       });
     }
-
-    const dialogueInput = document.getElementById("dialogueInput");
-    const suggestionsDiv = document.getElementById("suggestions");
-
-    dialogueInput.addEventListener("input", (e) => {
-      const lines = e.target.value.split("\n").map(line => {
-        const [char, ...rest] = line.split(":");
-        return {
-          character: char?.trim(),
-          text: rest.join(":").replace(/""/g, "''").trim()
-        };
-      }).filter(d => d.character && d.text);
-
-      dialogues = lines;
-      renderPreview();
-
-      showSuggestions();
-    });
 
     dialogueInput.addEventListener("keydown", (e) => {
       if (e.key === "Tab") {
@@ -116,6 +104,7 @@
         dialogueInput.value = text.join("\n");
         dialogueInput.setSelectionRange(dialogueInput.value.length, dialogueInput.value.length);
         suggestionsDiv.innerHTML = "";
+        localStorage.setItem("dialogueText", dialogueInput.value);
       }
     }
 
@@ -125,20 +114,19 @@
       dialogueInput.value = text.join("\n");
       dialogueInput.focus();
       suggestionsDiv.innerHTML = "";
-    }
-
-    function renderPreview() {
-      const preview = document.getElementById("preview");
-      preview.innerHTML = "";
-      dialogues.forEach(d => {
-        const p = document.createElement("p");
-        p.innerHTML = `<b>${d.character}:</b> ${d.text}`;
-        preview.appendChild(p);
-      });
+      localStorage.setItem("dialogueText", dialogueInput.value);
     }
 
     function exportJSON() {
-      const data = { dialogue: dialogues };
+      const lines = dialogueInput.value.split("\n").map(line => {
+        const [char, ...rest] = line.split(":");
+        return {
+          character: char?.trim(),
+          text: rest.join(":").replace(/""/g, "''").trim()
+        };
+      }).filter(d => d.character && d.text);
+
+      const data = { dialogue: lines };
       let filename = document.getElementById("fileName").value.trim();
       if (!filename.endsWith(".json")) filename += ".json";
 
