@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Editor de Diálogos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Editor de diálogos</h1>
+
+  <div>
+    <input type="text" id="charInput" placeholder="Nuevo personaje">
+    <button onclick="addCharacter()">+ Agregar personaje</button>
+  </div>
+  <div id="charList"></div>
+
+  <hr>
+
+  <textarea id="dialogInput" placeholder="Escribe aquí: Nombre: Texto"></textarea>
+  <button onclick="addDialogue()">+ Agregar diálogo</button>
+
+  <h2>Diálogos</h2>
+  <ul id="dialogueList"></ul>
+
+  <button onclick="exportJSON()">📥 Exportar JSON</button>
+
+  <script src="script.js"></script>
+</body>
+</html>
